@@ -1,0 +1,47 @@
+name: Compilar GONIX 7 profesional
+
+on:
+  push:
+    branches: [gonix-v7-profesional]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK preinstalado
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          test -f /usr/local/lib/android/sdk/platforms/android-36/android.jar
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Preparar proyecto version 7
+        shell: bash
+        run: |
+          mkdir -p gonix
+          base64 -d gonix_v6_source.tar.xz.b64 > gonix-base.tar.xz
+          tar -xJf gonix-base.tar.xz -C gonix
+          cat v7-overlay-part{0,1,2,3}.txt | base64 -d > gonix-overlay.tar.xz
+          echo "8cf736f8d87b2f183ec44b9033aef273162365785f4c3a026b79e80a85c18141  gonix-overlay.tar.xz" | sha256sum -c -
+          tar -xJf gonix-overlay.tar.xz -C gonix
+          grep -q "versionCode 7" gonix/app/build.gradle
+          grep -q "APP_SURFACE" gonix/app/src/main/java/cl/curico/gonix/MainActivity.java
+      - name: Generar APK instalable
+        working-directory: gonix
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GONIX-7-Pro-APK
+          path: gonix/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
