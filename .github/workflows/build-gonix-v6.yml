@@ -1,0 +1,45 @@
+name: Compilar GONIX Android v6
+on:
+  push:
+    branches: [gonix-v6-real-calls]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: SDK Android
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          test -f /usr/local/lib/android/sdk/platforms/android-36/android.jar
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Recuperar fuente GONIX
+        run: |
+          mkdir -p gonix
+          base64 -d gonix_v6_source.tar.xz.b64 > gonix.tar.xz
+          tar -xJf gonix.tar.xz -C gonix
+          test -f gonix/app/src/main/java/cl/curico/gonix/RemoteCalls.java
+      - name: Compilar APK
+        working-directory: gonix
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Subir APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GONIX-v6-APK
+          path: gonix/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
