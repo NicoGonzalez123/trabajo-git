@@ -1,0 +1,33 @@
+{
+  "name": "gonix-llamadas-trial",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "deploy": "npm run db:migrations:apply && wrangler deploy",
+    "db:migrations:apply": "wrangler d1 migrations apply DB --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "API_KEY": {
+        "description": "Clave aleatoria para que solo tu aplicacion GONIX pueda conectarse. Minimo 24 caracteres. No la publiques."
+      },
+      "TWILIO_ACCOUNT_SID": {
+        "description": "Account SID de Twilio (inicia por AC). Pegar dentro de Cloudflare, nunca en GitHub."
+      },
+      "TWILIO_AUTH_TOKEN": {
+        "description": "Auth Token de Twilio. Configuralo como secret, sin enviarlo por chat."
+      },
+      "TWILIO_FROM": {
+        "description": "Numero de prueba From mostrado en Try Out Voice de Twilio, formato +... ."
+      },
+      "TARGET_PHONE": {
+        "description": "Tu movil chileno verificado como destino, en formato +569XXXXXXXX."
+      }
+    }
+  }
+}
