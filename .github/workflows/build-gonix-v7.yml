@@ -1,0 +1,59 @@
+name: GONIX 7.0 profesional - APK
+on:
+  push:
+    branches: [gonix-v7-profesional-apk]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          test -f /usr/local/lib/android/sdk/platforms/android-36/android.jar
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Extract GONIX 6 base
+        shell: bash
+        run: |
+          mkdir -p gonix
+          base64 -d gonix_v6_source.tar.xz.b64 > gonix_base.tar.xz
+          tar -xJf gonix_base.tar.xz -C gonix
+      - name: Apply GONIX 7 professional layout
+        shell: bash
+        run: |
+          echo "b4d574a44bf3abda69966362bf6762f676ecc0f2a0d1f91e868cc208415f51dd  gonix_v7_overlay.tar.br.b64" | sha256sum -c -
+          python3 -m pip install --quiet brotli
+          python3 - <<'PY'
+          import base64, brotli, io, tarfile
+          from pathlib import Path
+          encoded=Path("gonix_v7_overlay.tar.br.b64").read_text().strip()
+          data=brotli.decompress(base64.b64decode(encoded,validate=True))
+          with tarfile.open(fileobj=io.BytesIO(data),mode="r:") as archive:
+              archive.extractall("gonix",filter="data")
+          PY
+          grep -q "versionName '7.0'" gonix/app/build.gradle
+          test -f gonix/app/src/main/res/drawable/gonix_mark.xml
+      - name: Build debug APK
+        working-directory: gonix
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Upload instalable
+        uses: actions/upload-artifact@v4
+        with:
+          name: GONIX-7-profesional-APK
+          path: gonix/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
