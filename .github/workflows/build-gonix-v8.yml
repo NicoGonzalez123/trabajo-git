@@ -38,7 +38,14 @@ jobs:
           mv gonix-style.py gonix/style.py
           cd gonix
           python3 style.py
+          cd ..
+          base64 -d gonix_v8_extras.py.xz.b64 > gonix-extras.py.xz
+          echo "ec88cc8dece3edbc3c60fcdcf7f123b4baf6d950df9c8271e15f363d0fd087f5  gonix-extras.py.xz" | sha256sum -c -
+          xz -d gonix-extras.py.xz
+          cd gonix
+          python3 ../gonix-extras.py
           grep -q "versionCode 8" app/build.gradle
+          grep -q "class SplashScreen" app/src/main/java/cl/curico/gonix/MainActivity.java
       - name: Compilar APK Android
         working-directory: gonix
         run: gradle --no-daemon :app:assembleDebug
